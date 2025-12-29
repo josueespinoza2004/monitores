@@ -10,6 +10,7 @@ let chart = null;
 let monitors = [];
 let activeId = null;
 let prevStatuses = {};
+let lastVisualUpdate = 0; // timestamp of last full visual update (bars + chart)
 
 async function api(path, opts){
   const r = await fetch('/api' + path, opts);
@@ -18,8 +19,11 @@ async function api(path, opts){
 
 async function load(){
   monitors = await api('/monitors');
-  renderList();
-  if(activeId) showDetail(activeId);
+  const now = Date.now();
+  // force initial visual render
+  renderList(true);
+  if(activeId) showDetail(activeId, true);
+  lastVisualUpdate = now;
   // initialize previous statuses map (no notifications on first load)
   prevStatuses = {};
   monitors.forEach(m=>{ prevStatuses[m.id || m.name] = m.lastStatus || 'unknown' });
@@ -42,34 +46,35 @@ function showToast(message, type){
   bsToast.show();
 }
 
-function renderList(){
+function renderList(forceVisual = false){
   monList.innerHTML = '';
   monitors.forEach(m=>{
     const li = document.createElement('li');
     // build small activity bars from monitor history so states persist visually
     const barsCount = 22;
-    let barsHtml = '<div class="mini-bars">';
-    const hist = Array.isArray(m.history) ? m.history.slice(-barsCount) : [];
-    // pad left with empty entries if history shorter
-    const pad = Math.max(0, barsCount - hist.length);
-    for(let i=0;i<pad;i++){
-      barsHtml += `<span class="mini" style="height:10px"></span>`;
+    // reuse previously rendered bars HTML unless a full visual update is requested
+    if (!forceVisual && m._barsHtml) {
+      var barsHtml = m._barsHtml;
+    } else {
+      let barsHtmlLocal = '<div class="mini-bars">';
+      const hist = Array.isArray(m.history) ? m.history.slice(-barsCount) : [];
+      const pad = Math.max(0, barsCount - hist.length);
+      for(let i=0;i<pad;i++){ barsHtmlLocal += `<span class="mini" style="height:10px"></span>`; }
+      hist.forEach(h => {
+        const up = (h.status === 'up');
+        let height = 12;
+        if (typeof h.ping === 'number') {
+          const p = Math.min(h.ping, 400);
+          height = 8 + Math.round((p / 400) * 28);
+        } else if (!up) { height = 14; }
+        barsHtmlLocal += `<span class="mini ${up?'up':'down'}" style="height:${height}px"></span>`;
+      });
+      barsHtmlLocal += '</div>';
+      barsHtml = barsHtmlLocal;
+      m._barsHtml = barsHtmlLocal;
     }
-    // render history entries oldest -> newest
-    hist.forEach(h => {
-      const up = (h.status === 'up');
-      let height = 12;
-      if (typeof h.ping === 'number') {
-        // scale ping to a reasonable bar height (clamp)
-        const p = Math.min(h.ping, 400);
-        height = 8 + Math.round((p / 400) * 28);
-      } else if (!up) {
-        height = 14; // visible down bar
-      }
-      barsHtml += `<span class="mini ${up?'up':'down'}" style="height:${height}px"></span>`;
-    });
-    barsHtml += '</div>';
     const pct = (typeof m.uptime24 === 'number') ? (m.uptime24.toFixed(0) + '%') : (m.lastStatus==='up' ? '100%' : '--');
+    li.setAttribute('data-id', m.id || m.name);
     li.innerHTML = `<div><div class="name">${escapeHtml(m.name)}</div><div class="muted">${escapeHtml(m.url||'')}</div>${barsHtml}</div><div><span class="badge">${pct}</span></div>`;
     li.onclick = ()=>{ activeId = m.id; showDetail(m.id); }
     if(activeId === m.id) li.classList.add('active');
@@ -79,7 +84,7 @@ function renderList(){
 
 function escapeHtml(s){ if(!s) return ''; return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-async function showDetail(id){
+async function showDetail(id, forceVisual = false){
   const m = monitors.find(x=>x.id===id);
   if(!m) return;
   detail.classList.remove('empty');
@@ -102,22 +107,26 @@ async function showDetail(id){
   $('#deleteBtn').onclick = async ()=>{ await api('/monitors/'+m.id,{method:'DELETE'}); activeId=null; await load(); }
 
   // bars row (30 entries) based on recent history so down markers persist
-  const barsRow = $('#barsRow'); barsRow.innerHTML='';
-  const detailCount = 30;
-  const detailHist = Array.isArray(m.history) ? m.history.slice(-detailCount) : [];
-  const padDetail = Math.max(0, detailCount - detailHist.length);
-  for(let i=0;i<padDetail;i++){ const b = document.createElement('div'); b.className='bar'; b.style.height='12px'; barsRow.appendChild(b); }
-  detailHist.forEach(h=>{
-    const b = document.createElement('div');
-    const up = (h.status === 'up');
-    let hgt = 16;
-    if (typeof h.ping === 'number') { const p = Math.min(h.ping, 400); hgt = 10 + Math.round((p/400)*64); }
-    b.className = 'bar ' + (up ? 'up' : 'down');
-    b.style.height = hgt + 'px';
-    barsRow.appendChild(b);
-  });
+  const barsRow = $('#barsRow');
+  if (forceVisual) {
+    barsRow.innerHTML='';
+    const detailCount = 30;
+    const detailHist = Array.isArray(m.history) ? m.history.slice(-detailCount) : [];
+    const padDetail = Math.max(0, detailCount - detailHist.length);
+    for(let i=0;i<padDetail;i++){ const b = document.createElement('div'); b.className='bar'; b.style.height='12px'; barsRow.appendChild(b); }
+    detailHist.forEach(h=>{
+      const b = document.createElement('div');
+      const up = (h.status === 'up');
+      let hgt = 16;
+      if (typeof h.ping === 'number') { const p = Math.min(h.ping, 400); hgt = 10 + Math.round((p/400)*64); }
+      b.className = 'bar ' + (up ? 'up' : 'down');
+      b.style.height = hgt + 'px';
+      barsRow.appendChild(b);
+    });
+  }
 
   // chart: use actual history pings; overlay red vertical bars for DOWN events
+  if (forceVisual) {
   const history = Array.isArray(m.history) ? m.history.slice(-60) : [];
   const labels = history.map(h => { try { return new Date(h.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } });
   const data = history.map(h => (typeof h.ping === 'number') ? h.ping : null);
@@ -152,6 +161,7 @@ async function showDetail(id){
       interaction: { intersect: false, mode: 'index' }
     }
   });
+  }
 }
 
 // small deterministic PRNG from a seed
@@ -200,8 +210,12 @@ window.addEventListener('load', ()=>{
         } catch(err){ console.warn('Error processing status changes', err); }
 
         monitors = data;
-        renderList();
-        if (activeId) showDetail(activeId);
+        // decide whether to update visuals (bars + chart) only every 60s
+        const now = Date.now();
+        const doVisual = (now - lastVisualUpdate) >= 60000;
+        renderList(doVisual);
+        if (activeId) showDetail(activeId, doVisual);
+        if (doVisual) lastVisualUpdate = now;
       } catch (err) { console.error('Invalid SSE payload', err); }
     };
     es.onerror = (err) => {
