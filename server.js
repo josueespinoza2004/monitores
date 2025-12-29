@@ -11,6 +11,7 @@ try {
         const monitorsToAdd = [
             { id: 'static-nueva', name: 'Nueva Guinea', url: '192.168.1.1', type: 'ping', interval: 30, lastStatus: null },
             { id: 'muelle-bueyes', name: 'Muelle de los Bueyes', url: '191.98.238.246', type: 'ping', interval: 30, lastStatus: null },
+            { id: 'carlos', name: 'Carlos', url: '192.168.1.53', type: 'ping', interval: 30, lastStatus: null },
             { id: 'el-rama', name: 'El Rama', url: '191.98.238.122', type: 'ping', interval: 30, lastStatus: null },
             { id: 'san-carlos', name: 'San Carlos', url: '190.106.18.98', type: 'ping', interval: 30, lastStatus: null }
         ];

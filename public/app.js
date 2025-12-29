@@ -211,6 +211,10 @@ window.addEventListener('load', ()=>{
         } catch(err){ console.warn('Error processing status changes', err); }
 
         monitors = data;
+            // DEBUG: resumen corto de historiales para cada monitor (últimos pings/status)
+            try {
+              console.log('SSE: monitor history summary', data.map(m=>({ id: m.id||m.name, name: m.name, recent: (Array.isArray(m.history)?m.history.slice(-8).map(h=> (typeof h.ping==='number'? h.ping + 'ms' : h.status) ) : []) })));
+            } catch(e){ console.warn('Error mostrando resumen de historiales', e); }
         // decide whether to update visuals (bars + chart) only every 60s
         const now = Date.now();
         const doVisual = (now - lastVisualUpdate) >= 60000;
