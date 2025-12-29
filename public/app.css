@@ -13,7 +13,7 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#e6eef2}
 .app{display:flex;height:100vh}
-.sidebar{width:320px;background:#0b0f12;padding:20px;display:flex;flex-direction:column;gap:12px;border-right:1px solid rgba(255,255,255,0.02)}
+.sidebar{width:360px;background:#0b0f12;padding:20px;display:flex;flex-direction:column;gap:12px;border-right:1px solid rgba(255,255,255,0.02)}
 .brand{font-weight:700;font-size:18px}
 .brand .muted{font-weight:500;color:var(--muted);font-size:12px}
 .btn-add{background:linear-gradient(90deg,var(--accent-strong),var(--accent));border:none;padding:10px;border-radius:8px;color:#032016;font-weight:800;box-shadow:0 6px 18px rgba(47,232,155,0.06)}
@@ -69,3 +69,10 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);c
 
 /* small responsive tweaks */
 @media(max-width:900px){.sidebar{display:none}.app{flex-direction:column}.detail-left{width:100%}}
+
+/* Toast notification tweaks */
+.toast-container .toast{min-width:320px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.5);margin-top:10px}
+.toast-container .toast .toast-body{display:flex;align-items:center;gap:10px}
+.toast-body .bi{font-size:18px}
+.toast-success{background:linear-gradient(90deg,#19b977,#2fe89b);color:#042316}
+.toast-danger{background:linear-gradient(90deg,#ff6b6b,#ff9b9b);color:#2b0606}

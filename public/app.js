@@ -9,6 +9,7 @@ const chartEl = document.getElementById('chart');
 let chart = null;
 let monitors = [];
 let activeId = null;
+let prevStatuses = {};
 
 async function api(path, opts){
   const r = await fetch('/api' + path, opts);
@@ -19,6 +20,26 @@ async function load(){
   monitors = await api('/monitors');
   renderList();
   if(activeId) showDetail(activeId);
+  // initialize previous statuses map (no notifications on first load)
+  prevStatuses = {};
+  monitors.forEach(m=>{ prevStatuses[m.id || m.name] = m.lastStatus || 'unknown' });
+}
+
+function showToast(message, type){
+  const container = document.getElementById('toastContainer');
+  if(!container) return;
+  const toastEl = document.createElement('div');
+  const icon = (type==='down') ? 'exclamation-triangle-fill' : 'check-circle-fill';
+  const variantClass = (type==='down') ? 'bg-danger text-white' : 'bg-success text-dark';
+  toastEl.className = 'toast align-items-center '+variantClass+'';
+  toastEl.setAttribute('role','alert');
+  toastEl.setAttribute('aria-live','assertive');
+  toastEl.setAttribute('aria-atomic','true');
+  toastEl.innerHTML = `<div class="d-flex"><div class="toast-body"><i class="bi bi-${icon}"></i> ${escapeHtml(message)}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+  container.insertBefore(toastEl, container.firstChild);
+  const bsToast = new bootstrap.Toast(toastEl, { delay: 8000 });
+  toastEl.addEventListener('hidden.bs.toast', ()=>{ try{ toastEl.remove() }catch(e){} });
+  bsToast.show();
 }
 
 function renderList(){
@@ -120,6 +141,25 @@ window.addEventListener('load', ()=>{
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
+        // detect status transitions and show toasts
+        try {
+          const newMap = {};
+          data.forEach(m=>{ newMap[m.id || m.name] = m.lastStatus || 'unknown' });
+          data.forEach(m=>{
+            const key = m.id || m.name;
+            const prev = prevStatuses[key];
+            const cur = newMap[key];
+            if(prev && prev !== cur){
+              // prepare a message; prefer explicit last message if available
+              const msg = (cur==='down') ? (`[${m.name}] [DOWN] ${m.lastMessage||m.lastError||'ping: connect: Network is unreachable'}`) : (`[${m.name}] [UP] Servicio reestablecido`);
+              showToast(msg, cur==='down' ? 'down' : 'up');
+            }
+          });
+          // update prevStatuses map
+          prevStatuses = {};
+          Object.keys(newMap).forEach(k=> prevStatuses[k]=newMap[k]);
+        } catch(err){ console.warn('Error processing status changes', err); }
+
         monitors = data;
         renderList();
         if (activeId) showDetail(activeId);
