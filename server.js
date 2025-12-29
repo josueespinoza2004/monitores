@@ -9,10 +9,10 @@ try {
     if (!Array.isArray(cur) || cur.length === 0) {
         const seed = Date.now();
         const monitorsToAdd = [
-            { id: 'static-nueva', name: 'Nueva Guinea', url: '192.168.1.1', type: 'ping', interval: 3, lastStatus: null },
-            { id: 'muelle-bueyes', name: 'Muelle de los Bueyes', url: '191.98.238.246', type: 'ping', interval: 3, lastStatus: null },
-            { id: 'el-rama', name: 'El Rama', url: '191.98.238.122', type: 'ping', interval: 3, lastStatus: null },
-            { id: 'san-carlos', name: 'San Carlos', url: '190.106.18.98', type: 'ping', interval: 3, lastStatus: null }
+            { id: 'static-nueva', name: 'Nueva Guinea', url: '192.168.1.1', type: 'ping', interval: 30, lastStatus: null },
+            { id: 'muelle-bueyes', name: 'Muelle de los Bueyes', url: '191.98.238.246', type: 'ping', interval: 30, lastStatus: null },
+            { id: 'el-rama', name: 'El Rama', url: '191.98.238.122', type: 'ping', interval: 30, lastStatus: null },
+            { id: 'san-carlos', name: 'San Carlos', url: '190.106.18.98', type: 'ping', interval: 30, lastStatus: null }
         ];
         monitorsToAdd.forEach(m => cur.push(m));
         writeMonitors(cur);
@@ -55,7 +55,7 @@ monitorEvents.on('update', (monitors) => {
 app.post("/api/monitors", (req, res) => {
     const monitors = readMonitors();
     const id = Date.now().toString(36);
-    const m = Object.assign({ id, type: "http", interval: 60, name: "unnamed", lastStatus: null }, req.body);
+    const m = Object.assign({ id, type: "http", interval: 30, name: "unnamed", lastStatus: null }, req.body);
     monitors.push(m);
     writeMonitors(monitors);
     try { monitorEvents.emit('update', monitors); } catch (e) { }

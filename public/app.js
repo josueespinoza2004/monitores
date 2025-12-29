@@ -105,14 +105,30 @@ async function showDetail(id){
   // chart: small line with random-ish values centered around 10-40 when up
   const labels = [];
   const data = [];
-  // create a smooth deterministic dataset using seeded values
+  // create a smooth deterministic dataset using seeded values (increase points for smoother graph)
   const chartSeed = hashCode(m.id||m.name) + (m.lastChecked||0);
-  for(let i=29;i>=0;i--){ labels.push(''); const s = seeded(chartSeed + i*13); if(m.lastStatus==='up'){ data.push(Math.max(5, Math.round(8 + s*40))); } else { data.push(Math.round(s*4)); } }
+  for(let i=59;i>=0;i--){ labels.push(''); const s = seeded(chartSeed + i*7); if(m.lastStatus==='up'){ data.push(Math.max(2, Math.round(5 + s*60))); } else { data.push(Math.round(s*6)); } }
   if(chart) chart.destroy();
-  const gradient = chartEl.getContext('2d').createLinearGradient(0,0,0,240);
-  gradient.addColorStop(0,'rgba(47,232,155,0.14)');
-  gradient.addColorStop(1,'rgba(47,232,155,0.02)');
-  chart = new Chart(chartEl, { type:'line', data:{ labels, datasets:[{ label:'Ping (ms)', data, borderColor:'#2fe89b', backgroundColor:gradient, tension:0.25, pointRadius:0, borderWidth:2 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{display:false}, x:{display:false}}, elements:{line:{cap:'round'}} } });
+  const ctx = chartEl.getContext('2d');
+  const gradient = ctx.createLinearGradient(0,0,0,240);
+  gradient.addColorStop(0,'rgba(47,232,155,0.12)');
+  gradient.addColorStop(0.7,'rgba(47,232,155,0.06)');
+  gradient.addColorStop(1,'rgba(47,232,155,0.01)');
+  chart = new Chart(chartEl, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Ping (ms)', data, borderColor: '#2fe89b', backgroundColor: gradient, tension: 0.38, pointRadius: 0, borderWidth: 3, fill: true }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { display: true, ticks: { color: 'rgba(255,255,255,0.6)', maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+        x: { display: false, grid: { display: false } }
+      },
+      elements: { line: { cap: 'round' } },
+      interaction: { intersect: false, mode: 'index' }
+    }
+  });
 }
 
 // small deterministic PRNG from a seed
