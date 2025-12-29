@@ -129,12 +129,13 @@ async function showDetail(id, forceVisual = false){
   if (forceVisual) {
   const history = Array.isArray(m.history) ? m.history.slice(-60) : [];
   const labels = history.map(h => { try { return new Date(h.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } });
-  const data = history.map(h => (typeof h.ping === 'number') ? h.ping : null);
-  // compute y max based on recent pings
+  // convert missing pings to 0 so line stays continuous and valleys reach baseline
+  const data = history.map(h => (typeof h.ping === 'number') ? h.ping : 0);
+  // compute y max based on recent pings but keep it reasonable for visible peaks
   const numericPings = data.filter(x=>typeof x==='number');
-  const maxPing = numericPings.length ? Math.max(...numericPings) : 200;
-  const yMax = Math.max(400, Math.ceil(maxPing * 1.25));
-  const downBars = history.map(h => (h.status === 'down' ? yMax : null));
+  const maxPing = numericPings.length ? Math.max(...numericPings) : 80;
+  const yMax = Math.max(80, Math.ceil(maxPing * 1.15));
+  const downBars = history.map(h => (h.status === 'down' ? yMax : 0));
   if(chart) chart.destroy();
   const ctx = chartEl.getContext('2d');
   const gradient = ctx.createLinearGradient(0,0,0,240);
@@ -145,8 +146,8 @@ async function showDetail(id, forceVisual = false){
     data: {
       labels,
       datasets: [
-        { type:'line', label: 'Ping (ms)', data, borderColor: '#2fe89b', backgroundColor: gradient, tension: 0.38, pointRadius: 0, borderWidth: 3, fill: true, order: 2 },
-        { type:'bar', label: 'Down', data: downBars, backgroundColor: '#ff6b6b', barThickness: 6, categoryPercentage: 0.8, order: 3 }
+        { type:'line', label: 'Ping (ms)', data, borderColor: '#2fe89b', backgroundColor: gradient, tension: 0.12, cubicInterpolationMode: 'default', pointRadius: 0, borderWidth: 4, fill: true, order: 2 },
+        { type:'bar', label: 'Down', data: downBars, backgroundColor: 'rgba(255,107,107,0.95)', barThickness: 6, categoryPercentage: 0.76, order: 3 }
       ]
     },
     options: {
@@ -154,10 +155,10 @@ async function showDetail(id, forceVisual = false){
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { display: true, max: yMax, ticks: { color: 'rgba(255,255,255,0.6)', maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+        y: { display: true, min: 0, max: yMax, ticks: { color: 'rgba(255,255,255,0.6)', maxTicksLimit: 6 }, grid: { color: 'rgba(255,255,255,0.03)' } },
         x: { display: true, ticks: { color: 'rgba(255,255,255,0.45)' }, grid: { display: false } }
       },
-      elements: { line: { cap: 'round' } },
+      elements: { line: { cap: 'butt' } },
       interaction: { intersect: false, mode: 'index' }
     }
   });
