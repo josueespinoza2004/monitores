@@ -46,16 +46,28 @@ function renderList(){
   monList.innerHTML = '';
   monitors.forEach(m=>{
     const li = document.createElement('li');
-    // create deterministic small activity bars (seeded from id/lastChecked)
+    // build small activity bars from monitor history so states persist visually
     const barsCount = 22;
     let barsHtml = '<div class="mini-bars">';
-    const seedBase = hashCode(m.id || m.name) + (m.lastChecked||0);
-    for(let i=0;i<barsCount;i++){
-      const s = seeded(seedBase + i);
-      const up = s > 0.18;
-      const h = 8 + Math.round(s * 28);
-      barsHtml += `<span class="mini ${up?'up':''}" style="height:${h}px"></span>`
+    const hist = Array.isArray(m.history) ? m.history.slice(-barsCount) : [];
+    // pad left with empty entries if history shorter
+    const pad = Math.max(0, barsCount - hist.length);
+    for(let i=0;i<pad;i++){
+      barsHtml += `<span class="mini" style="height:10px"></span>`;
     }
+    // render history entries oldest -> newest
+    hist.forEach(h => {
+      const up = (h.status === 'up');
+      let height = 12;
+      if (typeof h.ping === 'number') {
+        // scale ping to a reasonable bar height (clamp)
+        const p = Math.min(h.ping, 400);
+        height = 8 + Math.round((p / 400) * 28);
+      } else if (!up) {
+        height = 14; // visible down bar
+      }
+      barsHtml += `<span class="mini ${up?'up':'down'}" style="height:${height}px"></span>`;
+    });
     barsHtml += '</div>';
     const pct = (typeof m.uptime24 === 'number') ? (m.uptime24.toFixed(0) + '%') : (m.lastStatus==='up' ? '100%' : '--');
     li.innerHTML = `<div><div class="name">${escapeHtml(m.name)}</div><div class="muted">${escapeHtml(m.url||'')}</div>${barsHtml}</div><div><span class="badge">${pct}</span></div>`;
@@ -89,41 +101,52 @@ async function showDetail(id){
   $('#mUp30').textContent = (typeof m.uptime30 === 'number') ? (m.uptime30 + '%') : '—';
   $('#deleteBtn').onclick = async ()=>{ await api('/monitors/'+m.id,{method:'DELETE'}); activeId=null; await load(); }
 
-  // bars row (30 entries) based on recent status (simulate variation)
+  // bars row (30 entries) based on recent history so down markers persist
   const barsRow = $('#barsRow'); barsRow.innerHTML='';
-  // deterministic bars for detail (30 entries)
-  const seedBase = hashCode(m.id || m.name) + (m.lastChecked||0);
-  for(let i=0;i<30;i++){
+  const detailCount = 30;
+  const detailHist = Array.isArray(m.history) ? m.history.slice(-detailCount) : [];
+  const padDetail = Math.max(0, detailCount - detailHist.length);
+  for(let i=0;i<padDetail;i++){ const b = document.createElement('div'); b.className='bar'; b.style.height='12px'; barsRow.appendChild(b); }
+  detailHist.forEach(h=>{
     const b = document.createElement('div');
-    const s = seeded(seedBase + i*7);
-    const up = s > 0.2 || m.lastStatus==='up';
-    b.className='bar '+(up?'up':'down');
-    b.style.height = (10 + Math.round(s*48))+'px';
+    const up = (h.status === 'up');
+    let hgt = 16;
+    if (typeof h.ping === 'number') { const p = Math.min(h.ping, 400); hgt = 10 + Math.round((p/400)*64); }
+    b.className = 'bar ' + (up ? 'up' : 'down');
+    b.style.height = hgt + 'px';
     barsRow.appendChild(b);
-  }
+  });
 
-  // chart: small line with random-ish values centered around 10-40 when up
-  const labels = [];
-  const data = [];
-  // create a smooth deterministic dataset using seeded values (increase points for smoother graph)
-  const chartSeed = hashCode(m.id||m.name) + (m.lastChecked||0);
-  for(let i=59;i>=0;i--){ labels.push(''); const s = seeded(chartSeed + i*7); if(m.lastStatus==='up'){ data.push(Math.max(2, Math.round(5 + s*60))); } else { data.push(Math.round(s*6)); } }
+  // chart: use actual history pings; overlay red vertical bars for DOWN events
+  const history = Array.isArray(m.history) ? m.history.slice(-60) : [];
+  const labels = history.map(h => { try { return new Date(h.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } });
+  const data = history.map(h => (typeof h.ping === 'number') ? h.ping : null);
+  // compute y max based on recent pings
+  const numericPings = data.filter(x=>typeof x==='number');
+  const maxPing = numericPings.length ? Math.max(...numericPings) : 200;
+  const yMax = Math.max(400, Math.ceil(maxPing * 1.25));
+  const downBars = history.map(h => (h.status === 'down' ? yMax : null));
   if(chart) chart.destroy();
   const ctx = chartEl.getContext('2d');
   const gradient = ctx.createLinearGradient(0,0,0,240);
   gradient.addColorStop(0,'rgba(47,232,155,0.12)');
   gradient.addColorStop(0.7,'rgba(47,232,155,0.06)');
   gradient.addColorStop(1,'rgba(47,232,155,0.01)');
-  chart = new Chart(chartEl, {
-    type: 'line',
-    data: { labels, datasets: [{ label: 'Ping (ms)', data, borderColor: '#2fe89b', backgroundColor: gradient, tension: 0.38, pointRadius: 0, borderWidth: 3, fill: true }] },
+  chart = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        { type:'line', label: 'Ping (ms)', data, borderColor: '#2fe89b', backgroundColor: gradient, tension: 0.38, pointRadius: 0, borderWidth: 3, fill: true, order: 2 },
+        { type:'bar', label: 'Down', data: downBars, backgroundColor: '#ff6b6b', barThickness: 6, categoryPercentage: 0.8, order: 3 }
+      ]
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { display: true, ticks: { color: 'rgba(255,255,255,0.6)', maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.03)' } },
-        x: { display: false, grid: { display: false } }
+        y: { display: true, max: yMax, ticks: { color: 'rgba(255,255,255,0.6)', maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+        x: { display: true, ticks: { color: 'rgba(255,255,255,0.45)' }, grid: { display: false } }
       },
       elements: { line: { cap: 'round' } },
       interaction: { intersect: false, mode: 'index' }

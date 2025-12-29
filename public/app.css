@@ -53,6 +53,10 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);c
 .bars-row .bar.up{background:linear-gradient(180deg,var(--accent-strong),var(--accent))}
 .bars-row .bar.down{background:linear-gradient(180deg,#ff6b6b,#ff9b9b)}
 
+/* keep DOWN bars visually persistent without animating on every poll */
+.bars-row .bar{transition:none}
+.mini-bars .mini{transition:none}
+
 .chart-card{background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);padding:16px;border-radius:10px;margin-top:12px}
 
 .status.up{background:var(--accent);color:#052416;padding:10px;border-radius:999px;display:inline-block}
