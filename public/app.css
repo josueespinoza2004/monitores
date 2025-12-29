@@ -1,0 +1,71 @@
+:root{
+  --bg:#0b0f12;
+  --panel:#071014;
+  --panel-2:#081012;
+  --card:#0b0f12;
+  --muted:#97a3aa;
+  --muted-2:rgba(150,163,170,0.5);
+  --accent:#2fe89b;
+  --accent-strong:#19b977;
+  --danger:#ff6b6b;
+  --glass: rgba(255,255,255,0.02);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#e6eef2}
+.app{display:flex;height:100vh}
+.sidebar{width:320px;background:#0b0f12;padding:20px;display:flex;flex-direction:column;gap:12px;border-right:1px solid rgba(255,255,255,0.02)}
+.brand{font-weight:700;font-size:18px}
+.brand .muted{font-weight:500;color:var(--muted);font-size:12px}
+.btn-add{background:linear-gradient(90deg,var(--accent-strong),var(--accent));border:none;padding:10px;border-radius:8px;color:#032016;font-weight:800;box-shadow:0 6px 18px rgba(47,232,155,0.06)}
+.search input{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:#071013;color:var(--muted)}
+.mon-list{list-style:none;padding:0;margin:0;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+/* hide webkit scrollbars but keep scrolling functional */
+.mon-list::-webkit-scrollbar{width:0;height:0;display:none}
+.mon-list li{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:10px;margin:8px 0;background:linear-gradient(90deg, var(--glass), transparent);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+.mon-list li.active{box-shadow:0 6px 18px rgba(30,200,130,0.04);border-left:4px solid var(--accent-strong)}
+.mon-list li .name{font-weight:700}
+.badge{background:linear-gradient(90deg,var(--accent-strong),var(--accent));padding:6px 10px;border-radius:999px;color:#022417;font-weight:800;font-size:13px}
+
+/* small activity bars in list */
+.mini-bars{display:flex;gap:4px;margin-top:8px;align-items:end}
+.mini-bars .mini{width:6px;background:rgba(255,255,255,0.02);border-radius:3px;display:inline-block;transition:height 160ms}
+.mini.up{background:var(--accent)}
+
+.main{flex:1;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.02)}
+.title{font-size:20px;font-weight:700}
+.btn-app{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:6px;color:var(--muted)}
+.btn-app.small{padding:6px 8px}
+.detail{display:flex;gap:20px;padding:24px}
+.detail.empty{align-items:center;justify-content:center;color:var(--muted)}
+.detail-left{width:360px;background:linear-gradient(180deg, var(--glass), transparent);padding:20px;border-radius:10px}
+.detail-right{flex:1;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);padding:20px;border-radius:10px}
+.detail-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.status-pill{background:var(--accent);color:#032316;padding:16px 28px;border-radius:999px;font-weight:900;font-size:20px;box-shadow:0 8px 28px rgba(47,232,155,0.06)}
+.metrics{display:flex;gap:12px}
+.metric{background:#0b0f12;padding:12px;border-radius:8px;min-width:120px}
+.m-title{font-size:12px;color:var(--muted);margin-bottom:6px}
+.m-value{font-size:18px;font-weight:700}
+
+/* bars row at top */
+.bars-row{display:flex;gap:6px;margin-top:12px;align-items:end}
+.bars-row .bar{width:10px;border-radius:6px;background:rgba(255,255,255,0.02);display:inline-block;transition:height 200ms}
+.bars-row .bar.up{background:linear-gradient(180deg,var(--accent-strong),var(--accent))}
+.bars-row .bar.down{background:linear-gradient(180deg,#ff6b6b,#ff9b9b)}
+
+.chart-card{background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);padding:16px;border-radius:10px;margin-top:12px}
+
+.status.up{background:var(--accent);color:#052416;padding:10px;border-radius:999px;display:inline-block}
+.status.down{background:var(--danger);color:#2b0606;padding:10px;border-radius:999px}
+.status.unknown{background:rgba(255,255,255,0.03);color:var(--muted);padding:10px;border-radius:999px}
+.meta{margin-top:10px;color:var(--muted)}
+.controls{margin-top:12px}
+.danger{background:transparent;border:1px solid rgba(255,0,0,0.12);color:#ff9b9b}
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45)}
+.modal.hidden{display:none}
+.modal-card{background:#081012;padding:20px;border-radius:10px;width:360px}
+.modal-card input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:#061018;color:var(--muted)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+
+/* small responsive tweaks */
+@media(max-width:900px){.sidebar{display:none}.app{flex-direction:column}.detail-left{width:100%}}
